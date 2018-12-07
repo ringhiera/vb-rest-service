@@ -1,6 +1,8 @@
 package com.impe.demo.vb.repository;
 
 
+import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,5 +23,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	@Transactional
     @Query("SELECT o FROM Order o JOIN FETCH o.products WHERE o.id = :id")
 	Optional<Order> findById(Long id);
+
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.products WHERE o.effectiveDate >= :from AND  o.effectiveDate <= :to")
+	List<Order> getOrderByDateFromTo(Date from, Date to);
+
 }
 

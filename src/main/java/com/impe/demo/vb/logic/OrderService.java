@@ -1,5 +1,6 @@
 package com.impe.demo.vb.logic;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,18 @@ public class OrderService {
 	@Autowired
 	ProductRepository productRepository;
 
+	
+	/**
+	 * Returns all orders between the two dates 
+	 * 
+	 * @param from start date
+	 * @param to end date
+	 * @return
+	 */
+	public List<Order> getOrderByDateFromTo(Date from, Date to){
+		return orderRepository.getOrderByDateFromTo(from, to); 
+	}
+	
 	/**
 	 * Retirns the order
 	 * @param orderId the identifier of the order
