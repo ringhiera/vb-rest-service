@@ -1,0 +1,187 @@
+:spring_version: current
+:toc:
+:project_id: vb-rest-service
+:spring_version: current
+:spring_boot_version: 2.0.5.RELEASE
+:icons: font
+:source-highlighter: prettify
+
+
+
+== Features of the task
+
+The problem is ill-posed in that the requirements for the task partially defined, in part conflicting, in part inconsistent, and overly reductive in comparison with best practices. 
+Those limits in the specs were approached in different ways
+1. Asking for clarifications of the requirements, which was rejected with explanation as the guesswork is part of the task.
+2. Making reasonable guesses and taming the raw specs to i) meet consistency with broadest possible cohort of requirements ii) have minimal impact on the exposed interface of the service. E.g. the soft update of products through superseding  
+3. Pretending to stick with specs, despite not best practices, as to keep scope under control (it already took longer than a couple of hours that a task for a tech interview should take). E.g. embedding the email in an order instead of referring to a "Customer" record as best practice would suggest.
+4. Cutting corners where needed, thus showing a proof of concept of the device while keeping development effort at the reasonable minimum, as extending the approach is just a matter of having more time to throw at the task e.g. implementing a bare bones subset of the requirements for ISO 11179 embedding metadata in the records insead of creating base class for the specs and having any Administered Item inheriting from it (it is one of the few cases where inheritance is preferred over interface implementation). 
+5. Building prototypical solutions and leaving comments as to how extend the prototype, e.g. Global exception handler, most of the tes omitted (more on it below)
+
+== Testing
+
+Testing is one of the most important features in software development, in particulat in XP-TDD, as it translates specs into codes, builds the foundation of automatic spec verification, and ensures against bug regression and side effects on long lived software development.
+Here we have a slightly non-conform situation i) Specs were purposedly poorly definied, ii) the software product is a one go experiemnt.
+Therefore, I have to point out the differences between BAU software development in a long lived software product and this special case scenario.
+In a long lived software product, test is generally developed beforehand, so that at behaviour is caprured and tested against specs. Usually more testing is developed at unit and integration level as interfaces and communication contrats are made esplicit. Live code is then developed to pass tests and fulfill specs.
+In this particular case, I arbitrarily decided the core technical problem in the excercise was implementing the product update and made up a reasonable set of specs. Those specs were captured in behaviuoral tests. Ideally I could have even defined unit tests for repository and business logic, but given the scarce complexity it was also omitted. 
+The rest of the excercise presented with a number of minor inconsistencires (e.g. if we should accept an order referring to superseded), those issues were neither in-depth analysed nor formalized through specs and tests, but approached using minimum resistence policies. i.e. going for the easiest implementation despite not the best one and testing framework was left loose to save some time as i) there is expectation this is going to be dead code as soon as evaluated ii) even assuming a longer life cycle specs should be better refined to properly capture the expected behaviour.
+
+== State and Transactionality
+
+As one can see the superseding of a product requires to sucessfully complete 2 operations to be consistent, i) creating the new product, ii) superseding the old product.
+Therefore, the operations are run in transaction (it requires a transactional DB as backend, as H2 is not able to rollback). This ensures all DB operations are atomic (@Repository also makes all write/update to DB transactional by default).
+However, the application does not implement any form of locking on the records at DB level. Therefore, it does not grant consistency in case it is independently deployed in multiple posd/instances without orchestration.
+
+== Tech Considerations
+
+I assume you can use git vor versioning, maven or your favourite IDE for building the application and are at ease with swagger interfaces e.g. localhost:8080/swagger-ui.html. Endpoint documentation was kept to the bare minimum, but it should not be difficult to figure out the endpoints as they are matching those in the assignement.
+
+
+== Authentication and security
+
+AS per request authentication was not in scope
+The endpoints are running under http without any encryption layer
+
+== Limitations
+
+There are a number of limitations to the current implementation, 
+Many of them are driven by the need of keeping the scope contained and the implementation manageable within a few hours of work
+In Order: 
+- Order can only have at most one Product per type. Maybe Customer might want to order more (e.g. use a wrapper: (Product, Qty) instead of embedding product as such)
+- Email is encoded in the order, many potentially useful fields missing. Recommended: Proxy reference to a Customer class in Domain model
+- Currency is not homogeneous leading to conversion and mapping issues when computing totals, integrity and homogeneity of currency in orders need to be enforced
+- Order can reference Superseded Products and still pass the consistency check. Is it the required behaviour?
+- Return values for HTTP request are defaulted to 200 OK, while they might be set e.g. to 201 for POST
+- Product comes with a bare minimum set of attributes, one might think of a richer 
+- There is no endpoint to provide visibility to superseded products
+
+== Product Endpoints
+
+Get a list of (Standard) products HTTP GET on
+
+----
+http://localhost:8080/api/v0.0/products
+----
+
+
+
+Create a new product HTTP POST
+
+----
+http://localhost:8080/api/v0.0/products
+----
+
+With the representation of the product in the Request Body
+
+[source,json]
+----
+{ "currency": "GBP",  "name": "John",  "price": 19.99}
+----
+
+And returns the instance with the assigned Identifier
+
+[source,json]
+----
+{ "id": 1, "currency": "GBP",  "name": "John",  "price": 19.99}
+----
+
+
+
+Updating a product via superseding HTTP PUT on
+
+----
+http://localhost:8080/api/v0.0/products/{id}
+----
+
+With the representation of the product in the Request Body and {id} the identifier of the product
+
+[source,json]
+----
+{ "currency": "GBP",  "name": "John",  "price": 49.99}
+----
+
+And returns the instance updated with the new Identifier
+
+[source,json]
+----
+{ "id": 5, "currency": "GBP",  "name": "John",  "price": 49.99}
+----
+
+
+== Order Endpoints
+
+Get an existing order
+
+----
+http://localhost:8080/api/v0.0/orders/{id}
+----
+
+It returns the order in form of 
+
+{ "id": 1, 
+  "email": "foo@bar.com",
+  "products": [
+    {
+      "id": 1,
+      "name": "Hammer",
+      "price": 12.50,
+      "currency": "GBP"
+    }
+  ],
+  "time": "2018-12-07T14:13:13.122Z"
+}
+
+
+Create a new Order HTTP POST
+
+----
+http://localhost:8080/api/v0.0/orders
+----
+
+With order in the body (Note, only product ID required)
+
+[source,json]
+----
+{
+  "email": "foo@bar.com",
+  "productIds": [
+    1
+  ]
+}
+---- 
+
+And returns the instance of the order expanding Identifiers to products
+
+[source,json]
+----
+{ "id": 1, 
+  "email": "foo@bar.com",
+  "products": [
+    {
+      "id": 1,
+      "name": "Hammer",
+      "price": 12.50,
+      "currency": "GBP"
+    }
+  ],
+  "time": "2018-12-07T14:13:13.122Z"
+}
+----
+
+== Errors
+
+In case of Error the excaption handler returns a message in predefined format
+
+[source,json]
+----
+{	"id":2,
+	"timestamp":"2018-12-07T14:23:17.345+0000",
+	"message":" [... Omitted ...] ",
+	"details":[
+		" [... Omitted ...] ",
+		" [... Omitted ...] "
+	]
+}
+----
+
