@@ -152,6 +152,81 @@ It returns the order in form of
 }
 ----
 
+=== Get two orders between two dates
+
+----
+http://localhost:8080/api/v0.0/orders/from/{from}/to/{to}
+----
+
+With dates in format yyyy-MM-dd, 
+Interval defined from midnight to midnight on each date
+
+It returns all order as 
+
+[source,json]
+----
+[
+  {
+    "id": 3,
+    "email": "foo@bar.com",
+    "products": [
+      {
+        "id": 2,
+        "name": "p2",
+        "price": 2,
+        "currency": "GBP"
+      }
+    ],
+    "time": "2018-12-07T16:11:19.575Z"
+  },
+  {
+    "id": 2,
+    "email": "foo@bar.com",
+    "products": [
+      {
+        "id": 2,
+        "name": "p2",
+        "price": 2,
+        "currency": "GBP"
+      },
+      {
+        "id": 3,
+        "name": "p3",
+        "price": 3,
+        "currency": "GBP"
+      }
+    ],
+    "time": "2018-12-07T16:11:16.048Z"
+  },
+  {
+    "id": 1,
+    "email": "foo@bar.com",
+    "products": [
+      {
+        "id": 2,
+        "name": "p2",
+        "price": 2,
+        "currency": "GBP"
+      },
+      {
+        "id": 1,
+        "name": "p1",
+        "price": 1,
+        "currency": "GBP"
+      },
+      {
+        "id": 3,
+        "name": "p3",
+        "price": 3,
+        "currency": "GBP"
+      }
+    ],
+    "time": "2018-12-07T16:11:10.837Z"
+  }
+]
+----
+
+
 === Create a new Order HTTP POST
 
 ----
